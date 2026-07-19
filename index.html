@@ -3,17 +3,26 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>加班加点 · 光影边框</title>
+<title>牛牛乐园</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  /* ----- 背景图片设置 ----- */
   body {
+    /* 把下面的链接换成你自己的图片地址 */
+    --bg-image: url('https://github.com/Luxq2/work-hours/blob/1b3c487992d9eb20a25833dfd65bfb9b85425620/icon-1024.png');
+    background-image: var(--bg-image);
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+    background-color: #e2ecfe; /* 图片加载前的备用底色 */
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    background: linear-gradient(135deg, #f0e7ff 0%, #e2ecfe 100%);
     min-height: 100vh;
     display: flex;
     justify-content: center;
     padding: 20px;
   }
+
   .app { max-width: 480px; width: 100%; }
 
   .glass {
@@ -110,6 +119,10 @@
   .type-tabs { display: flex; gap: 10px; margin-bottom: 12px; }
   .type-tab {
     flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
     padding: 12px;
     border-radius: 18px;
     border: 1px solid rgba(255, 255, 255, 0.5);
@@ -125,6 +138,36 @@
   }
   .type-tab.active-ot { background: rgba(255, 107, 53, 0.15); color: #ff6b35; border-color: rgba(255, 107, 53, 0.3); }
   .type-tab.active-ew { background: rgba(59, 130, 246, 0.15); color: #3b82f6; border-color: rgba(59, 130, 246, 0.3); }
+
+  /* 合成图标：牛马+工具，放在文字前面，不遮挡 */
+  .icon-ot, .icon-ew {
+    position: relative;
+    display: inline-block;
+    width: 24px;
+    height: 24px;
+    flex-shrink: 0;
+  }
+  .icon-ot::before, .icon-ew::before {
+    content: '🐂';
+    position: absolute;
+    font-size: 20px;
+    top: -2px;
+    left: -2px;
+  }
+  .icon-ot::after {
+    content: '💻';
+    position: absolute;
+    font-size: 12px;
+    bottom: -1px;
+    right: -4px;
+  }
+  .icon-ew::after {
+    content: '☕';
+    position: absolute;
+    font-size: 12px;
+    bottom: -1px;
+    right: -4px;
+  }
 
   .quick-hours { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
   .quick-btn {
@@ -177,12 +220,7 @@
   }
   .save-btn:active { transform: scale(0.97); }
 
-  /* 历史记录入口卡片 */
-  .history-entry {
-    display: flex;
-    gap: 12px;
-    margin-bottom: 16px;
-  }
+  .history-entry { display: flex; gap: 12px; margin-bottom: 16px; }
   .history-card {
     flex: 1;
     background: rgba(255, 255, 255, 0.5);
@@ -197,7 +235,7 @@
     transition: all 0.2s;
   }
   .history-card:active { transform: scale(0.97); }
-  .history-card .h-icon { font-size: 24px; margin-bottom: 4px; }
+  .history-card .h-icon { font-size: 32px; margin-bottom: 4px; }
   .history-card .h-label { font-size: 14px; font-weight: 600; color: #1c1c1e; margin-bottom: 6px; }
   .history-card .h-total { font-size: 22px; font-weight: 800; }
   .history-card .h-unit { font-size: 11px; color: #8e8e93; }
@@ -298,8 +336,6 @@
     <div class="sub">记录每一只牛马</div>
   </div>
 
-  <!-- 删除了顶部的总计时卡片 -->
-
   <div class="glass" id="calendarCard">
     <div class="calendar-header">
       <button onclick="changeMonth(-1)">‹</button>
@@ -315,8 +351,12 @@
 
   <div class="glass add-section">
     <div class="type-tabs">
-      <button id="otTabBtn" class="type-tab active-ot" onclick="setType('overtime')">🌙 加班</button>
-      <button id="ewTabBtn" class="type-tab" onclick="setType('extraWork')">☀️ 加点</button>
+      <button id="otTabBtn" class="type-tab active-ot" onclick="setType('overtime')">
+        <span class="icon-ot"></span> 加班
+      </button>
+      <button id="ewTabBtn" class="type-tab" onclick="setType('extraWork')">
+        <span class="icon-ew"></span> 加点
+      </button>
     </div>
 
     <div class="quick-hours" id="quickHoursContainer"></div>
@@ -333,16 +373,15 @@
     <button class="save-btn" onclick="saveRecord()">保存记录</button>
   </div>
 
-  <!-- 历史记录入口卡片（显示当月总计） -->
   <div class="history-entry">
     <div class="history-card" onclick="showTypeRecords('overtime')">
-      <div class="h-icon">🌙</div>
+      <div class="h-icon"><span class="icon-ot"></span></div>
       <div class="h-label">加班记录</div>
       <div class="h-total ot-value" id="otHistoryTotal">0.0</div>
       <div class="h-unit">小时（本月）</div>
     </div>
     <div class="history-card" onclick="showTypeRecords('extraWork')">
-      <div class="h-icon">☀️</div>
+      <div class="h-icon"><span class="icon-ew"></span></div>
       <div class="h-label">加点记录</div>
       <div class="h-total ew-value" id="ewHistoryTotal">0.0</div>
       <div class="h-unit">小时（本月）</div>
@@ -360,9 +399,9 @@
 </div>
 
 <script>
-  const STORAGE_KEY = 'overtime_records_v10'; // 新版本
+  const STORAGE_KEY = 'overtime_records_v13'; 
   let records = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-  records.forEach(r => { if (!r.time) r.time = '00:00:00'; }); // 兼容旧数据
+  records.forEach(r => { if (!r.time) r.time = '00:00:00'; });
 
   let currentType = 'overtime';
   let calYear, calMonth;
@@ -384,7 +423,6 @@
     return key.replace('-', '年') + '月';
   }
 
-  // 计算自然月（当前月份）某类型的总时长
   function currentMonthTotal(type) {
     const now = new Date();
     const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
@@ -393,7 +431,6 @@
       .reduce((s, r) => s + r.hours, 0);
   }
 
-  // 计算全部历史总时长（用于模态框内显示）
   function totalAll(type) {
     return records.filter(r => r.type === type).reduce((s, r) => s + r.hours, 0);
   }
@@ -410,7 +447,6 @@
   const quickHours = [0.5, 1, 2, 2.5, 3, 8];
 
   function renderAll() {
-    // 更新历史记录卡片上的当月总计
     document.getElementById('otHistoryTotal').textContent = currentMonthTotal('overtime').toFixed(1);
     document.getElementById('ewHistoryTotal').textContent = currentMonthTotal('extraWork').toFixed(1);
 
@@ -495,7 +531,13 @@
 
   function pickDate(dateStr) {
     document.getElementById('dateInput').value = dateStr;
-    renderCalendar();
+    const d = new Date(dateStr + 'T00:00:00');
+    const dayOfWeek = d.getDay();
+    if (dayOfWeek === 0 || dayOfWeek === 6) {
+      setType('overtime');
+    } else {
+      setType('extraWork');
+    }
   }
 
   function getCurrentTime() {

@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>加班加点 · 光影边框</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: linear-gradient(135deg, #f0e7ff 0%, #e2ecfe 100%);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    padding: 20px;
+  }
+  .app { max-width: 480px; width: 100%; }
+
+  .glass {
+    background: rgba(255, 255, 255, 0.65);
+    backdrop-filter: blur(30px);
+    -webkit-backdrop-filter: blur(30px);
+    border-radius: 28px;
+    border: 1px solid rgba(255, 255, 255, 0.7);
+    box-shadow: 
+      0 8px 32px rgba(0, 0, 0, 0.08),
+      inset 0 1px 0 rgba(255, 255, 255, 0.8),
+      inset 0 -1px 0 rgba(0, 0, 0, 0.05);
+    padding: 20px;
+    margin-bottom: 16px;
+    position: relative;
+    overflow: hidden;
+  }
+  .glass::before {
+    content: '';
+    position: absolute;
+    top: -30%;
+    right: -20%;
+    width: 150px;
+    height: 150px;
+    background: radial-gradient(circle, rgba(255,255,255,0.4) 0%, transparent 70%);
+    border-radius: 50%;
+    pointer-events: none;
+  }
+
+  .header { text-align: center; margin-bottom: 16px; }
+  .header h1 { font-size: 28px; font-weight: 700; color: #1c1c1e; }
+  .header .sub { font-size: 14px; color: #6e6e73; }
+
+  .calendar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    font-weight: 600;
+    color: #1c1c1e;
+  }
+  .calendar-header button {
+    background: rgba(255, 255, 255, 0.55);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    border-radius: 14px;
+    padding: 6px 14px;
+    font-size: 16px;
+    cursor: pointer;
+    color: #1c1c1e;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+  }
+  table.calendar { width: 100%; border-collapse: collapse; table-layout: fixed; }
+  .calendar th { padding: 8px; font-size: 13px; color: #8e8e93; font-weight: 500; }
+  .calendar td {
+    text-align: center;
+    padding: 0;
+    height: 48px;
+    vertical-align: middle;
+    cursor: pointer;
+  }
+  .date-cell {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    gap: 2px;
+  }
+  .date-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    font-size: 15px;
+    font-weight: 500;
+    color: #1c1c1e;
+    transition: background 0.2s;
+  }
+  .calendar td.today .date-num { background: rgba(0, 0, 0, 0.06); font-weight: 700; }
+  .calendar td.selected .date-num { background: #ff6b35; color: #fff; }
+  .dot {
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: #34c759;
+    flex-shrink: 0;
+  }
+
+  .add-section { margin-bottom: 16px; }
+  .type-tabs { display: flex; gap: 10px; margin-bottom: 12px; }
+  .type-tab {
+    flex: 1;
+    padding: 12px;
+    border-radius: 18px;
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    font-weight: 600;
+    font-size: 15px;
+    cursor: pointer;
+    background: rgba(255, 255, 255, 0.4);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    color: #6e6e73;
+    transition: 0.2s;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+  }
+  .type-tab.active-ot { background: rgba(255, 107, 53, 0.15); color: #ff6b35; border-color: rgba(255, 107, 53, 0.3); }
+  .type-tab.active-ew { background: rgba(59, 130, 246, 0.15); color: #3b82f6; border-color: rgba(59, 130, 246, 0.3); }
+
+  .quick-hours { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+  .quick-btn {
+    flex: 1 0 auto;
+    padding: 10px 12px;
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    background: rgba(255, 255, 255, 0.5);
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    color: #1c1c1e;
+    transition: 0.2s;
+    text-align: center;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+  }
+  .quick-btn:hover { background: rgba(255, 107, 53, 0.15); border-color: rgba(255, 107, 53, 0.4); }
+  .quick-btn.active { background: #ff6b35; color: #fff; border-color: #ff6b35; box-shadow: 0 4px 12px rgba(255, 107, 53, 0.3); }
+
+  .slider-box { display: flex; align-items: center; gap: 10px; margin: 12px 0; }
+  .slider-box input[type=range] { flex: 1; height: 6px; accent-color: #ff6b35; }
+  .slider-box .val { font-size: 28px; font-weight: 800; min-width: 60px; text-align: center; }
+  .date-row { display: flex; gap: 10px; align-items: center; }
+  .date-row input {
+    flex: 1;
+    padding: 10px;
+    border-radius: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.7);
+    background: rgba(255, 255, 255, 0.55);
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+    font-size: 15px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+  }
+  .save-btn {
+    width: 100%;
+    margin-top: 14px;
+    padding: 14px;
+    border-radius: 20px;
+    border: none;
+    font-weight: 700;
+    font-size: 17px;
+    color: #fff;
+    background: linear-gradient(135deg, #ff6b35, #f7a072);
+    cursor: pointer;
+    box-shadow: 0 8px 20px rgba(255, 107, 53, 0.35);
+    transition: transform 0.1s;
+  }
+  .save-btn:active { transform: scale(0.97); }
+
+  /* 历史记录入口卡片 */
+  .history-entry {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .history-card {
+    flex: 1;
+    background: rgba(255, 255, 255, 0.5);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-radius: 20px;
+    padding: 16px 12px;
+    text-align: center;
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .history-card:active { transform: scale(0.97); }
+  .history-card .h-icon { font-size: 24px; margin-bottom: 4px; }
+  .history-card .h-label { font-size: 14px; font-weight: 600; color: #1c1c1e; margin-bottom: 6px; }
+  .history-card .h-total { font-size: 22px; font-weight: 800; }
+  .history-card .h-unit { font-size: 11px; color: #8e8e93; }
+
+  .modal-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.35);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 100;
+    visibility: hidden;
+    opacity: 0;
+    transition: visibility 0.2s, opacity 0.2s;
+  }
+  .modal-overlay.active { visibility: visible; opacity: 1; }
+  .modal-content {
+    background: rgba(255, 255, 255, 0.75);
+    backdrop-filter: blur(40px);
+    -webkit-backdrop-filter: blur(40px);
+    border-radius: 28px;
+    border: 1px solid rgba(255,255,255,0.7);
+    box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+    padding: 24px;
+    width: 90%;
+    max-width: 400px;
+    max-height: 70vh;
+    overflow-y: auto;
+    position: relative;
+  }
+  .modal-close {
+    position: absolute;
+    top: 12px;
+    right: 16px;
+    background: rgba(0,0,0,0.05);
+    border: none;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    font-size: 20px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #1c1c1e;
+  }
+  .modal-type-header { font-size: 20px; font-weight: 700; margin-bottom: 4px; padding-right: 30px; }
+  .modal-grand-total { font-size: 15px; color: #6e6e73; margin-bottom: 16px; }
+
+  .modal-month-group { margin-bottom: 8px; }
+  .modal-month-toggle {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 12px;
+    background: rgba(255,255,255,0.5);
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+    border-radius: 14px;
+    border: 1px solid rgba(255,255,255,0.6);
+    cursor: pointer;
+    font-weight: 600;
+    color: #1c1c1e;
+  }
+  .modal-month-toggle .month-total { font-size: 14px; color: #6e6e73; font-weight: 500; }
+  .modal-month-content { display: none; padding-left: 8px; margin-top: 4px; }
+  .modal-month-content.open { display: block; }
+
+  .modal-record-item {
+    display: flex;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(0,0,0,0.04);
+  }
+  .modal-record-item:last-child { border-bottom: none; }
+  .modal-record-date { flex: 1; font-size: 14px; color: #1c1c1e; }
+  .modal-record-date small { display: block; font-size: 12px; color: #8e8e93; margin-top: 2px; }
+  .modal-record-hours { font-weight: 700; margin-right: 8px; font-size: 15px; }
+  .modal-delete-btn {
+    background: none;
+    border: none;
+    color: #ff3b30;
+    font-size: 16px;
+    cursor: pointer;
+    padding: 4px;
+  }
+
+  .empty { text-align: center; padding: 30px; color: #8e8e93; }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <h1>加班加点</h1>
+    <div class="sub">记录每一份付出</div>
+  </div>
+
+  <!-- 删除了顶部的总计时卡片 -->
+
+  <div class="glass" id="calendarCard">
+    <div class="calendar-header">
+      <button onclick="changeMonth(-1)">‹</button>
+      <span id="calMonthDisplay"></span>
+      <button onclick="changeMonth(1)">›</button>
+    </div>
+    <table class="calendar">
+      <thead><tr><th>日</th><th>一</th><th>二</th><th>三</th><th>四</th><th>五</th><th>六</th></tr></thead>
+      <tbody id="calBody"></tbody>
+    </table>
+    <div style="font-size:12px; color:#8e8e93; margin-top:8px;">🟢 表示当天有加班/加点记录</div>
+  </div>
+
+  <div class="glass add-section">
+    <div class="type-tabs">
+      <button id="otTabBtn" class="type-tab active-ot" onclick="setType('overtime')">🌙 加班</button>
+      <button id="ewTabBtn" class="type-tab" onclick="setType('extraWork')">☀️ 加点</button>
+    </div>
+
+    <div class="quick-hours" id="quickHoursContainer"></div>
+
+    <div class="slider-box">
+      <span style="font-weight:600;">0</span>
+      <input type="range" id="hoursSlider" min="0" max="100" step="0.5" value="1">
+      <span style="font-weight:600;">100</span>
+      <span class="val" id="hoursVal">1.0</span>
+    </div>
+    <div class="date-row">
+      <input type="date" id="dateInput">
+    </div>
+    <button class="save-btn" onclick="saveRecord()">保存记录</button>
+  </div>
+
+  <!-- 历史记录入口卡片（显示当月总计） -->
+  <div class="history-entry">
+    <div class="history-card" onclick="showTypeRecords('overtime')">
+      <div class="h-icon">🌙</div>
+      <div class="h-label">加班记录</div>
+      <div class="h-total ot-value" id="otHistoryTotal">0.0</div>
+      <div class="h-unit">小时（本月）</div>
+    </div>
+    <div class="history-card" onclick="showTypeRecords('extraWork')">
+      <div class="h-icon">☀️</div>
+      <div class="h-label">加点记录</div>
+      <div class="h-total ew-value" id="ewHistoryTotal">0.0</div>
+      <div class="h-unit">小时（本月）</div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal-content">
+      <button class="modal-close" onclick="closeModal()">✕</button>
+      <div class="modal-type-header" id="modalTitle"></div>
+      <div class="modal-grand-total" id="modalGrandTotal"></div>
+      <div id="modalRecordsContainer"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const STORAGE_KEY = 'overtime_records_v10'; // 新版本
+  let records = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+  records.forEach(r => { if (!r.time) r.time = '00:00:00'; }); // 兼容旧数据
+
+  let currentType = 'overtime';
+  let calYear, calMonth;
+
+  function saveData() { localStorage.setItem(STORAGE_KEY, JSON.stringify(records)); }
+
+  function formatDateTime(dateStr, timeStr) {
+    const d = new Date(dateStr + 'T' + (timeStr || '00:00:00'));
+    const year = d.getFullYear();
+    const month = d.getMonth() + 1;
+    const day = d.getDate();
+    return `${year}年${month}月${day}日 ${timeStr}`;
+  }
+  function getMonthKey(dateStr) {
+    const d = new Date(dateStr + 'T00:00:00');
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+  }
+  function monthKeyToDisplay(key) {
+    return key.replace('-', '年') + '月';
+  }
+
+  // 计算自然月（当前月份）某类型的总时长
+  function currentMonthTotal(type) {
+    const now = new Date();
+    const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+    return records
+      .filter(r => r.type === type && getMonthKey(r.date) === currentMonthKey)
+      .reduce((s, r) => s + r.hours, 0);
+  }
+
+  // 计算全部历史总时长（用于模态框内显示）
+  function totalAll(type) {
+    return records.filter(r => r.type === type).reduce((s, r) => s + r.hours, 0);
+  }
+
+  function getMarkedDates(year, month) {
+    const prefix = `${year}-${String(month).padStart(2,'0')}-`;
+    const dates = new Set();
+    records.forEach(r => {
+      if (r.date && r.date.startsWith(prefix)) dates.add(r.date);
+    });
+    return dates;
+  }
+
+  const quickHours = [0.5, 1, 2, 2.5, 3, 8];
+
+  function renderAll() {
+    // 更新历史记录卡片上的当月总计
+    document.getElementById('otHistoryTotal').textContent = currentMonthTotal('overtime').toFixed(1);
+    document.getElementById('ewHistoryTotal').textContent = currentMonthTotal('extraWork').toFixed(1);
+
+    document.getElementById('otTabBtn').className = `type-tab ${currentType==='overtime'?'active-ot':''}`;
+    document.getElementById('ewTabBtn').className = `type-tab ${currentType==='extraWork'?'active-ew':''}`;
+
+    const today = new Date().toISOString().slice(0,10);
+    const dateInput = document.getElementById('dateInput');
+    if (!dateInput.value) dateInput.value = today;
+
+    const slider = document.getElementById('hoursSlider');
+    document.getElementById('hoursVal').textContent = parseFloat(slider.value).toFixed(1);
+
+    const quickContainer = document.getElementById('quickHoursContainer');
+    const currentVal = parseFloat(slider.value);
+    quickContainer.innerHTML = quickHours.map(h => {
+      const label = h % 1 === 0 ? h + 'h' : h.toFixed(1) + 'h';
+      const active = Math.abs(h - currentVal) < 0.01 ? ' active' : '';
+      return `<button class="quick-btn${active}" onclick="setQuickHours(${h})">${label}</button>`;
+    }).join('');
+
+    if (!calYear) {
+      const now = new Date();
+      calYear = now.getFullYear();
+      calMonth = now.getMonth() + 1;
+    }
+    renderCalendar();
+  }
+
+  function setQuickHours(hours) {
+    const slider = document.getElementById('hoursSlider');
+    slider.value = hours;
+    document.getElementById('hoursVal').textContent = hours.toFixed(1);
+    renderAll();
+  }
+
+  function renderCalendar() {
+    document.getElementById('calMonthDisplay').textContent = `${calYear}年${calMonth}月`;
+    const marked = getMarkedDates(calYear, calMonth);
+    const firstDay = new Date(calYear, calMonth-1, 1).getDay();
+    const daysInMonth = new Date(calYear, calMonth, 0).getDate();
+    const todayStr = new Date().toISOString().slice(0,10);
+    const selectedDate = document.getElementById('dateInput').value;
+
+    let html = '';
+    let day = 1;
+    for (let i = 0; i < 6; i++) {
+      html += '<tr>';
+      for (let j = 0; j < 7; j++) {
+        if (i === 0 && j < firstDay || day > daysInMonth) {
+          html += '<td></td>';
+        } else {
+          const dateStr = `${calYear}-${String(calMonth).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+          const isToday = (dateStr === todayStr);
+          const isSelected = (dateStr === selectedDate);
+          const hasDot = marked.has(dateStr);
+          let tdClass = '';
+          if (isToday) tdClass += ' today';
+          if (isSelected) tdClass += ' selected';
+
+          html += `<td class="${tdClass}" onclick="pickDate('${dateStr}')">
+            <div class="date-cell">
+              <span class="date-num">${day}</span>
+              ${hasDot ? '<span class="dot"></span>' : ''}
+            </div>
+          </td>`;
+          day++;
+        }
+      }
+      html += '</tr>';
+      if (day > daysInMonth) break;
+    }
+    document.getElementById('calBody').innerHTML = html;
+  }
+
+  function changeMonth(delta) {
+    calMonth += delta;
+    if (calMonth > 12) { calMonth = 1; calYear++; }
+    if (calMonth < 1) { calMonth = 12; calYear--; }
+    renderCalendar();
+  }
+
+  function pickDate(dateStr) {
+    document.getElementById('dateInput').value = dateStr;
+    renderCalendar();
+  }
+
+  function getCurrentTime() {
+    const now = new Date();
+    return now.toTimeString().split(' ')[0];
+  }
+
+  function saveRecord() {
+    const hours = parseFloat(document.getElementById('hoursSlider').value);
+    const date = document.getElementById('dateInput').value;
+    if (!date) { alert('请选择日期'); return; }
+    if (hours <= 0) { alert('时长必须大于0'); return; }
+
+    const time = getCurrentTime();
+    records.push({
+      id: Date.now().toString(),
+      type: currentType,
+      hours,
+      date,
+      time,
+      monthKey: getMonthKey(date)
+    });
+    records.sort((a,b) => b.date.localeCompare(a.date) || b.time.localeCompare(a.time));
+    saveData();
+    document.getElementById('hoursSlider').value = 1;
+    renderAll();
+  }
+
+  function showTypeRecords(type) {
+    const filtered = records.filter(r => r.type === type).sort((a,b) => {
+      if (b.date !== a.date) return b.date.localeCompare(a.date);
+      return b.time.localeCompare(a.time);
+    });
+    const grandTotal = totalAll(type);
+    const typeName = type === 'overtime' ? '加班' : '加点';
+    const color = type === 'overtime' ? '#ff6b35' : '#3b82f6';
+
+    document.getElementById('modalTitle').textContent = `${typeName}记录`;
+    document.getElementById('modalGrandTotal').textContent = `累计 ${grandTotal.toFixed(1)} 小时`;
+
+    const grouped = {};
+    filtered.forEach(r => {
+      const m = getMonthKey(r.date);
+      if (!grouped[m]) grouped[m] = [];
+      grouped[m].push(r);
+    });
+    const months = Object.keys(grouped).sort((a,b) => b.localeCompare(a));
+
+    let html = '';
+    if (months.length === 0) {
+      html = '<div class="empty">暂无记录</div>';
+    } else {
+      months.forEach(month => {
+        const monthRecords = grouped[month];
+        const monthTotal = monthRecords.reduce((s,r) => s + r.hours, 0);
+        const monthDisplay = monthKeyToDisplay(month);
+        html += `
+          <div class="modal-month-group">
+            <div class="modal-month-toggle" onclick="toggleModalMonth(this)">
+              <span>${monthDisplay}</span>
+              <span class="month-total">合计 ${monthTotal.toFixed(1)}h</span>
+            </div>
+            <div class="modal-month-content">
+              ${monthRecords.map(r => `
+                <div class="modal-record-item">
+                  <div class="modal-record-date">
+                    ${formatDateTime(r.date, r.time)}
+                  </div>
+                  <div class="modal-record-hours" style="color:${color}">${r.hours}h</div>
+                  <button class="modal-delete-btn" onclick="deleteRecordFromModal('${r.id}','${type}')">🗑️</button>
+                </div>
+              `).join('')}
+            </div>
+          </div>`;
+      });
+    }
+    document.getElementById('modalRecordsContainer').innerHTML = html;
+    document.getElementById('modalOverlay').classList.add('active');
+  }
+
+  function toggleModalMonth(el) {
+    const content = el.nextElementSibling;
+    content.classList.toggle('open');
+  }
+
+  function closeModal() {
+    document.getElementById('modalOverlay').classList.remove('active');
+  }
+
+  function deleteRecordFromModal(id, type) {
+    if (confirm('确定删除该记录？')) {
+      records = records.filter(r => r.id !== id);
+      saveData();
+      renderAll();
+      showTypeRecords(type);
+    }
+  }
+
+  document.getElementById('modalOverlay').addEventListener('click', function(e) {
+    if (e.target === this) closeModal();
+  });
+
+  function setType(type) {
+    currentType = type;
+    renderAll();
+  }
+
+  document.getElementById('hoursSlider').addEventListener('input', function(e) {
+    const v = parseFloat(e.target.value);
+    document.getElementById('hoursVal').textContent = v.toFixed(1);
+    const quickContainer = document.getElementById('quickHoursContainer');
+    const buttons = quickContainer.children;
+    for (let btn of buttons) {
+      const h = parseFloat(btn.textContent);
+      btn.classList.toggle('active', Math.abs(h - v) < 0.01);
+    }
+  });
+
+  renderAll();
+</script>
+</body>
+</html>

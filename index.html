@@ -7,7 +7,6 @@
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
-    /* 替换为你自己的背景图片链接 */
     --bg-image: url('https://raw.githubusercontent.com/你的用户名/仓库名/main/bg.jpg');
     background-image: var(--bg-image);
     background-size: cover;
@@ -116,13 +115,10 @@
   .quick-btn:hover { background: rgba(255, 107, 53, 0.15); border-color: rgba(255, 107, 53, 0.4); }
   .quick-btn.active { background: #ff6b35; color: #fff; border-color: #ff6b35; box-shadow: 0 4px 12px rgba(255, 107, 53, 0.3); }
 
-  /* 输入框样式 */
   .input-box {
     display: flex; align-items: center; gap: 8px; margin: 12px 0;
   }
-  .input-box label {
-    font-weight: 600; font-size: 15px; color: #1c1c1e;
-  }
+  .input-box label { font-weight: 600; font-size: 15px; color: #1c1c1e; }
   .input-box input {
     flex: 1; padding: 12px; border-radius: 14px;
     border: 1px solid rgba(255, 255, 255, 0.7);
@@ -131,12 +127,8 @@
     color: #ff6b35; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.03);
     transition: border 0.2s;
   }
-  .input-box input:focus {
-    outline: none; border-color: #ff6b35;
-  }
-  .input-box span {
-    font-size: 16px; color: #8e8e93; font-weight: 500;
-  }
+  .input-box input:focus { outline: none; border-color: #ff6b35; }
+  .input-box span { font-size: 16px; color: #8e8e93; font-weight: 500; }
 
   .date-row { display: flex; gap: 10px; align-items: center; }
   .date-row input {
@@ -250,13 +242,11 @@
       </button>
     </div>
 
-    <!-- 快捷小时按钮：只保留2h和8h -->
     <div class="quick-hours" id="quickHoursContainer"></div>
 
-    <!-- 输入框代替滑块 -->
     <div class="input-box">
       <label for="hoursInput">时长</label>
-      <input type="number" id="hoursInput" min="0.5" max="100" step="0.5" value="1" placeholder="输入小时数">
+      <input type="text" id="hoursInput" inputmode="decimal" placeholder="输入小时数" value="1.0">
       <span>小时</span>
     </div>
 
@@ -292,10 +282,52 @@
 </div>
 
 <script>
-  const STORAGE_KEY = 'overtime_records_v16'; 
-  let records = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-  records.forEach(r => { if (!r.time) r.time = '00:00:00'; });
+  // ===== 永久存储键名 =====
+  const STORAGE_KEY = 'overtime_records';
 
+  function loadRecords() {
+    const oldKeys = [
+      'overtime_records_v16', 'overtime_records_v15', 'overtime_records_v14',
+      'overtime_records_v13', 'overtime_records_v12', 'overtime_records_v11',
+      'overtime_records_v10', 'overtime_records_v9', 'overtime_records_v8',
+      'overtime_records_v7', 'overtime_records_v6', 'overtime_records_v5',
+      'overtime_records_v4', 'overtime_records_v3', 'overtime_records_v2',
+      'overtime_records'
+    ];
+
+    let allRecords = [];
+    const ids = new Set();
+
+    const current = localStorage.getItem(STORAGE_KEY);
+    if (current) {
+      try {
+        const parsed = JSON.parse(current);
+        parsed.forEach(r => {
+          if (!ids.has(r.id)) { allRecords.push(r); ids.add(r.id); }
+        });
+      } catch(e) {}
+    }
+
+    oldKeys.forEach(key => {
+      if (key === STORAGE_KEY) return;
+      const data = localStorage.getItem(key);
+      if (data) {
+        try {
+          const parsed = JSON.parse(data);
+          parsed.forEach(r => {
+            if (!ids.has(r.id)) { allRecords.push(r); ids.add(r.id); }
+          });
+        } catch(e) {}
+        localStorage.removeItem(key);
+      }
+    });
+
+    allRecords.forEach(r => { if (!r.time) r.time = '00:00:00'; });
+    allRecords.sort((a,b) => b.date.localeCompare(a.date) || b.time.localeCompare(a.time));
+    return allRecords;
+  }
+
+  let records = loadRecords();
   let currentType = 'overtime';
   let calYear, calMonth;
 
@@ -331,25 +363,20 @@
 
   const quickHours = [2, 8];
 
-  // 获取当前输入框的值
+  // 获取输入框中的有效数值（保留原始输入，仅保存时校验）
   function getInputHours() {
-    const input = document.getElementById('hoursInput');
-    let val = parseFloat(input.value);
-    if (isNaN(val) || val < 0.5) val = 0.5;
-    if (val > 100) val = 100;
-    // 自动调整到0.5的倍数
-    val = Math.round(val * 2) / 2;
-    return val;
+    const raw = document.getElementById('hoursInput').value.trim();
+    const val = parseFloat(raw);
+    if (isNaN(val) || val < 0.5) return null; // 无效输入返回null
+    return Math.min(val, 100); // 限制最大100
   }
 
-  // 设置输入框的值并更新快捷按钮高亮
+  // 设置输入框的值（保留一位小数格式，用于快捷按钮）
   function setInputHours(hours) {
-    const input = document.getElementById('hoursInput');
-    input.value = hours.toFixed(1);
+    document.getElementById('hoursInput').value = hours.toFixed(1);
     updateQuickActive(hours);
   }
 
-  // 更新快捷按钮的高亮状态
   function updateQuickActive(hours) {
     const buttons = document.getElementById('quickHoursContainer').children;
     for (let btn of buttons) {
@@ -358,10 +385,7 @@
     }
   }
 
-  // 快捷按钮点击
-  function setQuickHours(hours) {
-    setInputHours(hours);
-  }
+  function setQuickHours(hours) { setInputHours(hours); }
 
   function renderAll() {
     document.getElementById('otHistoryTotal').textContent = currentMonthTotal('overtime').toFixed(1);
@@ -374,18 +398,17 @@
     const dateInput = document.getElementById('dateInput');
     if (!dateInput.value) dateInput.value = today;
 
-    // 保持输入框当前值，如果没有则设为1
+    // 不再强制修正输入框内容，保持用户输入
     const input = document.getElementById('hoursInput');
-    if (!input.value || isNaN(parseFloat(input.value))) {
+    if (!input.value) {
       input.value = '1.0';
     }
 
-    // 渲染快捷按钮
     const quickContainer = document.getElementById('quickHoursContainer');
-    const currentVal = getInputHours();
+    const currentVal = parseFloat(input.value);
     quickContainer.innerHTML = quickHours.map(h => {
       const label = h % 1 === 0 ? h + 'h' : h.toFixed(1) + 'h';
-      const active = Math.abs(h - currentVal) < 0.01 ? ' active' : '';
+      const active = (!isNaN(currentVal) && Math.abs(h - currentVal) < 0.01) ? ' active' : '';
       return `<button class="quick-btn${active}" onclick="setQuickHours(${h})">${label}</button>`;
     }).join('');
 
@@ -462,9 +485,12 @@
 
   function saveRecord() {
     const hours = getInputHours();
+    if (hours === null) {
+      alert('请输入有效的小时数（最小0.5，最大100）');
+      return;
+    }
     const date = document.getElementById('dateInput').value;
     if (!date) { alert('请选择日期'); return; }
-    if (hours <= 0) { alert('时长必须大于0'); return; }
 
     const time = getCurrentTime();
     records.push({
@@ -530,13 +556,8 @@
     document.getElementById('modalOverlay').classList.add('active');
   }
 
-  function toggleModalMonth(el) {
-    el.nextElementSibling.classList.toggle('open');
-  }
-
-  function closeModal() {
-    document.getElementById('modalOverlay').classList.remove('active');
-  }
+  function toggleModalMonth(el) { el.nextElementSibling.classList.toggle('open'); }
+  function closeModal() { document.getElementById('modalOverlay').classList.remove('active'); }
 
   function deleteRecordFromModal(id, type) {
     if (confirm('确定删除该记录？')) {
@@ -551,22 +572,15 @@
     if (e.target === this) closeModal();
   });
 
-  function setType(type) {
-    currentType = type;
-    renderAll();
-  }
+  function setType(type) { currentType = type; renderAll(); }
 
-  // 输入框事件监听：验证输入并同步快捷按钮
+  // 输入框交互优化：自由输入，不做任何自动修正
   document.getElementById('hoursInput').addEventListener('input', function() {
-    const val = getInputHours();
-    this.value = val.toFixed(1); // 格式化显示
-    updateQuickActive(val);
-  });
-
-  // 失焦时确保格式正确
-  document.getElementById('hoursInput').addEventListener('blur', function() {
-    const val = getInputHours();
-    this.value = val.toFixed(1);
+    // 仅更新快捷按钮高亮（如果可以解析出数字）
+    const val = parseFloat(this.value.trim());
+    if (!isNaN(val)) {
+      updateQuickActive(val);
+    }
   });
 
   renderAll();
